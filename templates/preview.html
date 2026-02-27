@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Preview Announcement</h4>
+                <a href="/" class="btn btn-outline-secondary btn-sm">Edit</a>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5>Targets:</h5>
+                    <div class="d-flex gap-2">
+                        {% for target in targets %}
+                        <span class="badge bg-info text-dark text-capitalize">{{ target }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="mb-3">
+                    <h2>{{ title }}</h2>
+                </div>
+
+                <div class="p-4 bg-light rounded border mb-4">
+                    {{ content | safe }}
+                </div>
+
+                <form action="/send-announcement" method="POST">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">Confirm and Send Announcement</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
