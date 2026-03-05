@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    body {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+        min-height: 100vh;
+    }
+
+    .login-card {
+        max-width: 420px;
+        margin: 80px auto;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        padding: 2rem 2rem 1.5rem;
+        text-align: center;
+        color: #fff;
+    }
+
+    .login-header .brand-icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 0.5rem;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.08);
+        }
+    }
+
+    .login-header h4 {
+        font-weight: 700;
+        font-size: 1.4rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .login-header p {
+        font-size: 0.88rem;
+        opacity: 0.85;
+        margin: 0;
+    }
+
+    .login-body {
+        padding: 2rem;
+        background: #fff;
+    }
+
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .2);
+        border-color: #0d6efd;
+    }
+
+    .btn-login {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca);
+        border: none;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .btn-login:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+    }
+
+    .input-group-text {
+        background: #f0f5ff;
+        border-color: #dee2e6;
+        color: #0d6efd;
+    }
+
+    .hint-box {
+        background: #f8f9ff;
+        border-left: 3px solid #0d6efd;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        font-size: 0.82rem;
+        color: #555;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-card card">
+    <div class="login-header">
+        <i class="bi bi-megaphone-fill brand-icon"></i>
+        <h4>Campus Announcement System</h4>
+        <p>Sign in to your account</p>
+    </div>
+    <div class="login-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} py-2 small">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/login">
+            <div class="mb-3">
+                <label class="form-label fw-semibold" for="email">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email"
+                        required autofocus>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold" for="password">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" class="form-control" id="password" name="password"
+                        placeholder="Enter your password" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePwd" title="Show/Hide password">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-login btn-primary w-100 py-2">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+            </button>
+        </form>
+
+        <div class="hint-box mt-3">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>Admin:</strong> admin@campus.edu / admin123 <br>
+            <strong>Main User:</strong> mainuser@campus.edu / main123
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('togglePwd').addEventListener('click', function () {
+        const pwd = document.getElementById('password');
+        const icon = document.getElementById('eyeIcon');
+        if (pwd.type === 'password') {
+            pwd.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            pwd.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    });
+</script>
+{% endblock %}
