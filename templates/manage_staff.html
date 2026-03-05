@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Staff - Campus Announcement System{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i> System Staff Management</h5>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+            <i class="bi bi-person-plus me-1"></i> Add New Staff
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Name</th>
+                        <th>Email</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in staff %}
+                    <tr>
+                        <td class="ps-4 fw-semibold">{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td><code class="small">{{ user.username }}</code></td>
+                        <td>
+                            <span
+                                class="badge {% if user.role == 'super_admin' %}bg-dark{% elif user.role == 'admin' %}bg-primary{% else %}bg-info text-dark{% endif %} text-uppercase">
+                                {{ user.role }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">Active</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-primary me-1"
+                                onclick="editStaff('{{ user._id }}', '{{ user.name }}', '{{ user.email }}', '{{ user.role }}')"
+                                data-bs-toggle="modal" data-bs-target="#editStaffModal">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            {% if session.get('user_id') != user._id %}
+                            <form action="/admin/staff/delete/{{ user._id }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Are you sure you want to remove this staff member?')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal fade" id="addStaffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">Add New Staff Member</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/staff/add" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g. John Operator">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" required placeholder="name@campus.edu">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">ID / Username</label>
+                        <input type="text" name="username" class="form-control" required placeholder="e.g. jdoe123">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Password</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Role</label>
+                        <select name="role" class="form-select">
+                            <option value="operator" selected>Operator</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                        <div class="form-text small">Operators can manage announcements; Admins can manage users; Super
+                            Admins manage everything.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Staff Modal -->
+<div class="modal fade" id="editStaffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">Edit Staff Member</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editStaffForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <input type="text" name="name" id="editName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" id="editEmail" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Role</label>
+                        <select name="role" id="editRole" class="form-select">
+                            <option value="operator">Operator</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark px-4">Update Details</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function editStaff(id, name, email, role) {
+        document.getElementById('editStaffForm').action = '/admin/staff/edit/' + id;
+        document.getElementById('editName').value = name;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editRole').value = role;
+    }
+</script>
+
+<!-- SMTP Configuration Card -->
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-envelope-gear me-2 text-warning"></i> Email (SMTP) Configuration</h5>
+        <span class="badge bg-warning text-dark">Super Admin Only</span>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-3 mb-4" role="alert">
+            <i class="bi bi-info-circle-fill fs-5 mt-1 text-info"></i>
+            <div>
+                <strong>Gmail App Password Required:</strong> If using Gmail, make sure 2-Step Verification is enabled
+                and use a
+                <a href="https://myaccount.google.com/apppasswords" target="_blank" class="alert-link">Gmail App
+                    Password</a>
+                (not your Google account password). The password you enter is saved securely to the <code>.env</code>
+                file.
+            </div>
+        </div>
+        <form action="/admin/settings/smtp" method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold"><i class="bi bi-at me-1"></i>SMTP Email Address</label>
+                    <input type="email" name="smtp_email" class="form-control" value="{{ smtp_config.email }}" required
+                        placeholder="your.email@gmail.com">
+                    <div class="form-text">This email will appear as the sender of all campus announcements.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold"><i class="bi bi-key me-1"></i>SMTP Password / App
+                        Password</label>
+                    <div class="input-group">
+                        <input type="password" name="smtp_password" id="smtpPasswordInput" class="form-control"
+                            placeholder="Leave blank to keep current password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="toggleSmtpPassword()"
+                            id="toggleSmtpBtn">
+                            <i class="bi bi-eye" id="toggleSmtpIcon"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Leave blank to keep the existing password unchanged.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold"><i class="bi bi-server me-1"></i>SMTP Host</label>
+                    <input type="text" name="smtp_host" class="form-control" value="{{ smtp_config.host }}"
+                        placeholder="smtp.gmail.com">
+                    <div class="form-text">Default: <code>smtp.gmail.com</code> for Gmail.</div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold"><i class="bi bi-plug me-1"></i>SMTP Port</label>
+                    <input type="number" name="smtp_port" class="form-control" value="{{ smtp_config.port }}"
+                        placeholder="587">
+                    <div class="form-text">Default: <code>587</code> (TLS).</div>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-warning w-100 fw-semibold">
+                        <i class="bi bi-floppy me-2"></i>Save SMTP Settings
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleSmtpPassword() {
+        const input = document.getElementById('smtpPasswordInput');
+        const icon = document.getElementById('toggleSmtpIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+</script>
+{% endblock %}

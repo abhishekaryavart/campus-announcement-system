@@ -3,36 +3,105 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">Preview Announcement</h4>
-                <a href="/" class="btn btn-outline-secondary btn-sm">Edit</a>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h4 class="mb-0 fw-semibold text-secondary"><i class="bi bi-eye me-2"></i>Preview Announcement</h4>
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</a>
             </div>
-            <div class="card-body">
-                <div class="mb-4">
-                    <h5>Targets:</h5>
-                    <div class="d-flex gap-2">
-                        {% for target in targets %}
-                        <span class="badge bg-info text-dark text-capitalize">{{ target }}</span>
-                        {% endfor %}
+            <div class="card-body p-4">
+
+                <!-- Metadata Box -->
+                <div class="mb-4 p-3 rounded" style="background-color: #f8f9fa; border: 1px solid #e9ecef;">
+                    <h6 class="fw-semibold text-muted mb-3 text-uppercase" style="letter-spacing: 0.5px;">Delivery
+                        Details</h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <span class="text-muted d-block small">Priority</span>
+                            {% if priority == 'emergency' %}
+                            <span class="badge bg-danger">Emergency</span>
+                            {% elif priority == 'urgent' %}
+                            <span class="badge bg-warning text-dark">Urgent</span>
+                            {% elif priority == 'important' %}
+                            <span class="badge bg-info text-dark">Important</span>
+                            {% else %}
+                            <span class="badge bg-primary">Normal</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <span class="text-muted d-block small">Audience Type</span>
+                            <span class="fw-semibold text-capitalize text-primary">{{ target_dict.target_type }}</span>
+                        </div>
+
+                        {% if target_dict.department %}
+                        <div class="col-md-6 mb-2 mt-2">
+                            <span class="text-muted d-block small">Filter: Department</span>
+                            <span class="fw-semibold">{{ target_dict.department }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if target_dict.course %}
+                        <div class="col-md-6 mb-2 mt-2">
+                            <span class="text-muted d-block small">Filter: Course</span>
+                            <span class="fw-semibold">{{ target_dict.course }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if target_dict.year %}
+                        <div class="col-md-6 mb-2 mt-2">
+                            <span class="text-muted d-block small">Filter: Year</span>
+                            <span class="fw-semibold">Year {{ target_dict.year }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if schedule_time %}
+                        <div class="col-md-12 mb-2 mt-2">
+                            <span class="text-muted d-block small"><i class="bi bi-clock me-1"></i>Scheduled
+                                Publishing</span>
+                            <span class="badge bg-warning text-dark fs-6">{{ schedule_time | replace('T', ' ') }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <hr>
-
-                <div class="mb-3">
-                    <h2>{{ title }}</h2>
+                <!-- Match Count Alert -->
+                {% if match_count == 0 %}
+                <div class="alert alert-warning mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Warning!</strong> Your targeting criteria matches <strong>0</strong> active users. The
+                    announcement will be saved, but no emails will be sent.
                 </div>
-
-                <div class="p-4 bg-light rounded border mb-4">
-                    {{ content | safe }}
+                {% else %}
+                <div class="alert alert-info mb-4">
+                    <i class="bi bi-people-fill me-2"></i>
+                    This announcement will be delivered to <strong>{{ match_count }}</strong> active user(s).
                 </div>
+                {% endif %}
 
-                <form action="/send-announcement" method="POST">
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success btn-lg">Confirm and Send Announcement</button>
+                <hr class="mb-4">
+
+                <!-- Email Preview Display -->
+                <div class="email-preview">
+                    <h3 class="fw-bold mb-4" style="color: #2c3e50;">{{ title }}</h3>
+                    <div class="p-4 bg-white border rounded shadow-sm">
+                        {{ content | safe }}
                     </div>
-                </form>
+                </div>
+
+                <div class="mt-5">
+                    <form action="/send-announcement" method="POST">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg fw-semibold" {% if match_count==0
+                                %}onclick="return confirm('No users matched. Send anyway?');" {% endif %}>
+                                {% if schedule_time %}
+                                <i class="bi bi-calendar-check me-2"></i> Confirm and Schedule Announcement
+                                {% else %}
+                                <i class="bi bi-send-fill me-2"></i> Confirm and Send Announcement
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
