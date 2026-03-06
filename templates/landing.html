@@ -29,11 +29,12 @@
         <div class="card border-0 shadow-sm bg-primary text-white p-4 h-100 card-hover rounded-4">
             <div class="d-flex align-items-center">
                 <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
-                    <i class="bi bi-people-fill fs-3"></i>
+                    <i class="bi bi-people-fill fs-3" style="color:#2c1fe0 !important;"></i>
                 </div>
                 <div>
-                    <h6 class="text-white-50 text-uppercase small fw-bold mb-1">Total Registered</h6>
-                    <h2 class="mb-0 fw-bold">{{ stats.total_users }}</h2>
+                    <h6 class="text-uppercase small fw-bold mb-1" style="color:rgba(25, 82, 215, 0.7) !important;">Total
+                        Registered</h6>
+                    <h2 class="mb-0 fw-bold" style="color:#5d4ac7 !important;">{{ stats.total_users }}</h2>
                 </div>
             </div>
         </div>
@@ -42,25 +43,28 @@
         <div class="card border-0 shadow-sm bg-success text-white p-4 h-100 card-hover rounded-4">
             <div class="d-flex align-items-center">
                 <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
-                    <i class="bi bi-person-plus-fill fs-3"></i>
+                    <i class="bi bi-person-plus-fill fs-3" style="color:#2a39bf !important;"></i>
                 </div>
                 <div>
-                    <h6 class="text-white-50 text-uppercase small fw-bold mb-1">New Enrollments</h6>
-                    <h2 class="mb-0 fw-bold">+{{ stats.new_users_today }}</h2>
+                    <h6 class="text-uppercase small fw-bold mb-1" style="color:rgba(21, 60, 215, 0.7) !important;">New
+                        Enrollments</h6>
+                    <h2 class="mb-0 fw-bold" style="color:#221ee1 !important;">+{{ stats.new_users_today }}</h2>
                 </div>
             </div>
-            <div class="mt-2 small text-white-50">Since start of today</div>
+            <div class="mt-2 small" style="color:rgba(20, 82, 205, 0.6) !important;">Since start of today</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card border-0 shadow-sm bg-dark text-white p-4 h-100 card-hover rounded-4">
             <div class="d-flex align-items-center">
                 <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
-                    <i class="bi bi- megaphone-fill fs-3"></i>
+                    <i class="bi bi-megaphone-fill fs-3" style="color:#4019ec !important;"></i>
                 </div>
                 <div>
-                    <h6 class="text-white-50 text-uppercase small fw-bold mb-1">Active Updates</h6>
-                    <h2 class="mb-0 fw-bold">{{ announcements|length }}</h2>
+                    <h6 class="text-uppercase small fw-bold mb-1" style="color:rgba(21, 52, 228, 0.7) !important;">
+                        Active
+                        Updates</h6>
+                    <h2 class="mb-0 fw-bold" style="color:#2817dc !important;">{{ announcements|length }}</h2>
                 </div>
             </div>
         </div>
@@ -145,7 +149,7 @@
 
     .card-hover:hover {
         transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, .1) !important;
+        box-shadow: 0 0.5rem 1.5rem rgba(198, 72, 72, 0.1) !important;
     }
 </style>
 {% endblock %}
