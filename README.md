@@ -92,6 +92,11 @@ http://127.0.0.1:5000
 
 ## Version History
 
+
+### Version 1.0
+* Basic Announcement System and public landing page.
+
+
 ### Version 2.0 (Current)
 * **Rebranding**: Changed application name to **C S Broadcast System**.
 * **UI/UX Overhaul**: Completely redesigned the dashboard to use DSVV's official blue/white color scheme, featuring professional modern data cards with SVG icons, a clean white header, and a deep blue sidebar.
@@ -100,8 +105,6 @@ http://127.0.0.1:5000
 * **Dynamic Content**: Email subject lines now dynamically include the broadcast title.
 * **Navigation**: Updated layout to include dedicated sections for Create Broadcast, Recent Broadcasts, and Important Info.
 
-### Version 1.0
-* Basic Announcement System and public landing page.
 
 ---
 
