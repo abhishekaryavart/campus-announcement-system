@@ -25,6 +25,7 @@ import csv
 import io
 import openpyxl
 import datetime
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -214,11 +215,29 @@ def dashboard():
     # --- 3. Recent Activity Logs (Using Audit Logs for high-level events) ---
     recent_activity = list(db.audit_logs.find().sort("timestamp", -1).limit(6))
     
-    # --- 4. Recent Announcements list ---
-    recent_announcements = list(db.announcements.find().sort("created_at", -1).limit(5))
+    return render_template("index.html", 
+                           stats=stats,
+                           charts=charts,
+                           recent_activity=recent_activity)
+
+@app.route("/create-announcement")
+@login_required
+@operator_required
+def create_announcement():
+    db = get_db()
+    active_configs = list(db.smtp_configs.find({"status": "active"}))
+    return render_template("create_announcement.html", smtp_configs=active_configs)
+
+@app.route("/recent-announcements")
+@login_required
+def recent_announcements():
+    db = get_db()
+    
+    # We'll pull the last 50 for the dedicated page instead of just 5
+    announcements = list(db.announcements.find().sort("created_at", -1).limit(50))
     
     # Attach read statistics
-    for ann in recent_announcements:
+    for ann in announcements:
         ann_id = ann.get("announcement_id", str(ann.get("_id")))
         t_recipients = db.announcement_reads.count_documents({"announcement_id": ann_id})
         r_count = db.announcement_reads.count_documents({"announcement_id": ann_id, "read_status": True})
@@ -228,11 +247,28 @@ def dashboard():
         ann["stat_unread"] = t_recipients - r_count
         ann["stat_percent"] = round((r_count / (t_recipients or 1)) * 100)
         
-    return render_template("index.html", 
-                           announcements=recent_announcements,
-                           stats=stats,
-                           charts=charts,
-                           recent_activity=recent_activity)
+    return render_template("recent_announcements.html", announcements=announcements)
+
+@app.route("/important-information")
+@login_required
+def important_information():
+    db = get_db()
+    
+    # Query only for high priority announcements
+    announcements = list(db.announcements.find({"priority": {"$in": ["important", "urgent", "emergency"]}}).sort("created_at", -1).limit(50))
+    
+    # Attach read statistics
+    for ann in announcements:
+        ann_id = ann.get("announcement_id", str(ann.get("_id")))
+        t_recipients = db.announcement_reads.count_documents({"announcement_id": ann_id})
+        r_count = db.announcement_reads.count_documents({"announcement_id": ann_id, "read_status": True})
+        
+        ann["stat_total"] = t_recipients
+        ann["stat_read"] = r_count
+        ann["stat_unread"] = t_recipients - r_count
+        ann["stat_percent"] = round((r_count / (t_recipients or 1)) * 100)
+        
+    return render_template("important_information.html", announcements=announcements)
 
 # --- Email Tracking Route --- 
 @app.route("/track/<announcement_id>/<email>")
@@ -286,6 +322,20 @@ def preview():
     target_course = request.form.get("course", "").strip()
     target_year = request.form.get("year", "").strip()
     
+    smtp_config_id = request.form.get("smtp_config_id", "").strip()
+    
+    db = get_db()
+    
+    # Fetch smtp config display name
+    smtp_display = "Global Env Config (Default)"
+    if smtp_config_id:
+        try:
+            config_doc = db.smtp_configs.find_one({"_id": ObjectId(smtp_config_id)})
+            if config_doc:
+                smtp_display = f"{config_doc.get('department')} ({config_doc.get('email')})"
+        except Exception:
+            pass
+    
     # --- Integration for Scheduled feature ---
     # Convert local HTML datetime-local string to UTC datetime object if provided
     schedule_time_str = request.form.get("schedule_time", "").strip()
@@ -319,6 +369,7 @@ def preview():
         "content": content,
         "priority": priority,
         "target_dict": target_dict,
+        "smtp_config_id": smtp_config_id,
         # Store as ISO format string for JSON session serialization
         "schedule_time": schedule_time.isoformat() if schedule_time else None
     }
@@ -328,6 +379,7 @@ def preview():
         content=content, 
         priority=priority,
         target_dict=target_dict,
+        smtp_display=smtp_display,
         schedule_time=schedule_time_str, # Passed back for display
         match_count=len(matching_users)
     )
@@ -376,6 +428,15 @@ def send_announcement():
         fail_count = 0
         db = get_db()
         
+        # Fetch smtp config
+        smtp_account = None
+        smtp_config_id = data.get("smtp_config_id")
+        if smtp_config_id:
+            try:
+                smtp_account = db.smtp_configs.find_one({"_id": ObjectId(smtp_config_id)})
+            except Exception:
+                pass
+        
         for r in recipients:
             r_status = "Failed"
             
@@ -387,8 +448,8 @@ def send_announcement():
                 "read_time": None
             })
             
-            # send_email now takes (to_email, title, content, announcement_id)
-            if send_email(r["email"], title, content, announcement_id):
+            # send_email now takes (to_email, title, content, announcement_id, smtp_account)
+            if send_email(r["email"], title, content, announcement_id, smtp_account):
                 r_status = "Sent"
                 success_count += 1
             else:
@@ -419,12 +480,7 @@ def audit_logs():
 @super_admin_required
 def manage_staff():
     staff = get_all_system_users()
-    smtp_config = {
-        "email": config.SMTP_EMAIL or "",
-        "host": os.getenv("SMTP_HOST", "smtp.gmail.com"),
-        "port": os.getenv("SMTP_PORT", "587"),
-    }
-    return render_template("manage_staff.html", staff=staff, smtp_config=smtp_config)
+    return render_template("manage_staff.html", staff=staff)
 
 @app.route("/admin/staff/add", methods=["POST"])
 @login_required
@@ -481,77 +537,123 @@ def delete_staff_route(user_id):
         flash(f"Error: {err}", "danger")
     return redirect(url_for("manage_staff"))
 
-@app.route("/admin/settings/smtp", methods=["POST"])
+@app.route("/admin/smtp-configs")
 @login_required
-@super_admin_required
-def update_smtp_settings():
-    """Allow Super Admin to update SMTP config from the UI."""
-    smtp_email = request.form.get("smtp_email", "").strip()
-    smtp_password = request.form.get("smtp_password", "").strip()
-    smtp_host = request.form.get("smtp_host", "smtp.gmail.com").strip()
-    smtp_port = request.form.get("smtp_port", "587").strip()
+@admin_required
+def smtp_configs():
+    db = get_db()
+    configs = list(db.smtp_configs.find())
+    return render_template("smtp_configs.html", smtp_configs=configs)
 
-    if not smtp_email:
-        flash("SMTP Email cannot be empty.", "danger")
-        return redirect(url_for("manage_staff"))
+@app.route("/admin/smtp-configs/add", methods=["POST"])
+@login_required
+@admin_required
+def add_smtp_config():
+    db = get_db()
+    department = request.form.get("department", "").strip()
+    email = request.form.get("email", "").strip()
+    host = request.form.get("host", "smtp.gmail.com").strip()
+    port = request.form.get("port", "587").strip()
+    password = request.form.get("password", "").strip()
+    signature = request.form.get("signature", "").strip()
 
-    # Update .env file
-    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if not department or not email or not password:
+        flash("Department, Email, and Password are required.", "danger")
+        return redirect(url_for("smtp_configs"))
+
+    db.smtp_configs.insert_one({
+        "department": department,
+        "email": email,
+        "host": host,
+        "port": port,
+        "password": password,
+        "signature": signature,
+        "status": "active"
+    })
+    
+    log_audit(
+        user_id=session.get("user_email"),
+        action="SMTP Config Added",
+        description=f"Added new SMTP config for {department} ({email})",
+        ip_address=request.remote_addr
+    )
+    flash(f"SMTP Configuration for {department} added successfully.", "success")
+    return redirect(url_for("smtp_configs"))
+
+@app.route("/admin/smtp-configs/edit/<config_id>", methods=["POST"])
+@login_required
+@admin_required
+def edit_smtp_config(config_id):
+    db = get_db()
+    department = request.form.get("department", "").strip()
+    email = request.form.get("email", "").strip()
+    host = request.form.get("host", "smtp.gmail.com").strip()
+    port = request.form.get("port", "587").strip()
+    password = request.form.get("password", "").strip()
+    signature = request.form.get("signature", "").strip()
+
+    if not department or not email:
+        flash("Department and Email are required.", "danger")
+        return redirect(url_for("smtp_configs"))
+
+    update_fields = {
+        "department": department,
+        "email": email,
+        "host": host,
+        "port": port,
+        "signature": signature
+    }
+    if password:
+        update_fields["password"] = password
+
     try:
-        with open(env_path, "r") as f:
-            lines = f.readlines()
-
-        new_lines = []
-        keys_found = set()
-        for line in lines:
-            if line.startswith("SMTP_EMAIL="):
-                new_lines.append(f"SMTP_EMAIL={smtp_email}\n")
-                keys_found.add("SMTP_EMAIL")
-            elif line.startswith("SMTP_PASSWORD=") and smtp_password:
-                new_lines.append(f"SMTP_PASSWORD={smtp_password}\n")
-                keys_found.add("SMTP_PASSWORD")
-            elif line.startswith("SMTP_HOST="):
-                new_lines.append(f"SMTP_HOST={smtp_host}\n")
-                keys_found.add("SMTP_HOST")
-            elif line.startswith("SMTP_PORT="):
-                new_lines.append(f"SMTP_PORT={smtp_port}\n")
-                keys_found.add("SMTP_PORT")
-            else:
-                new_lines.append(line)
-
-        # Add any keys that weren't in the file
-        if "SMTP_EMAIL" not in keys_found:
-            new_lines.append(f"SMTP_EMAIL={smtp_email}\n")
-        if "SMTP_PASSWORD" not in keys_found and smtp_password:
-            new_lines.append(f"SMTP_PASSWORD={smtp_password}\n")
-        if "SMTP_HOST" not in keys_found:
-            new_lines.append(f"SMTP_HOST={smtp_host}\n")
-        if "SMTP_PORT" not in keys_found:
-            new_lines.append(f"SMTP_PORT={smtp_port}\n")
-
-        with open(env_path, "w") as f:
-            f.writelines(new_lines)
-
-        # Update the live config module attributes immediately (no restart needed)
-        import config as _cfg
-        _cfg.SMTP_EMAIL = smtp_email
-        if smtp_password:
-            _cfg.SMTP_PASSWORD = smtp_password
-        os.environ["SMTP_EMAIL"] = smtp_email
-        if smtp_password:
-            os.environ["SMTP_PASSWORD"] = smtp_password
-
+        db.smtp_configs.update_one(
+            {"_id": ObjectId(config_id)},
+            {"$set": update_fields}
+        )
         log_audit(
             user_id=session.get("user_email"),
-            action="SMTP configuration update",
-            description=f"Super Admin updated SMTP settings: email={smtp_email}, host={smtp_host}, port={smtp_port}",
+            action="SMTP Config Updated",
+            description=f"Updated SMTP config for {department} ({email})",
             ip_address=request.remote_addr
         )
-        flash("✅ SMTP settings updated successfully! Email service is now using the new configuration.", "success")
+        flash(f"SMTP Configuration for {department} updated successfully.", "success")
     except Exception as e:
-        flash(f"Error updating SMTP settings: {e}", "danger")
+        flash(f"Error updating config: {str(e)}", "danger")
 
-    return redirect(url_for("manage_staff"))
+    return redirect(url_for("smtp_configs"))
+
+@app.route("/admin/smtp-configs/toggle/<config_id>", methods=["POST"])
+@login_required
+@admin_required
+def toggle_smtp_config(config_id):
+    db = get_db()
+    try:
+        config = db.smtp_configs.find_one({"_id": ObjectId(config_id)})
+        if config:
+            new_status = "inactive" if config.get("status") == "active" else "active"
+            db.smtp_configs.update_one(
+                {"_id": ObjectId(config_id)},
+                {"$set": {"status": new_status}}
+            )
+            flash(f"SMTP config marked as {new_status}.", "success")
+        else:
+            flash("SMTP configuration not found.", "danger")
+    except Exception as e:
+        flash(f"Error toggling status: {str(e)}", "danger")
+    return redirect(url_for("smtp_configs"))
+
+@app.route("/admin/smtp-configs/delete/<config_id>", methods=["POST"])
+@login_required
+@admin_required
+def delete_smtp_config(config_id):
+    db = get_db()
+    try:
+        db.smtp_configs.delete_one({"_id": ObjectId(config_id)})
+        flash("SMTP configuration deleted.", "success")
+    except Exception as e:
+        flash(f"Error deleting config: {str(e)}", "danger")
+    return redirect(url_for("smtp_configs"))
 
 @app.route("/delete-announcement/<announcement_id>", methods=["POST"])
 @login_required

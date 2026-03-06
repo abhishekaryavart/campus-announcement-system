@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h4 class="mb-0 fw-semibold text-dsvv-blue"><i class="bi bi-clock-history me-2"></i>Recent Announcements
+            </h4>
+            <span class="badge bg-primary rounded-pill">{{ announcements|length }}</span>
+        </div>
+
+        {% if announcements %}
+        <div class="d-flex flex-column gap-3">
+            {% for ann in announcements %}
+            {% set border_class = 'border-secondary-subtle' %}
+            {% set header_bg = 'bg-light' %}
+            {% set text_class = 'text-dark' %}
+
+            {% if ann.priority == 'emergency' %}
+            {% set border_class = 'border-danger border-2' %}
+            {% set header_bg = 'bg-danger text-white' %}
+            {% set text_class = 'text-white' %}
+            {% elif ann.priority == 'urgent' %}
+            {% set border_class = 'border-warning border-2' %}
+            {% set header_bg = 'bg-warning text-dark' %}
+            {% elif ann.priority == 'important' %}
+            {% set border_class = 'border-info' %}
+            {% set header_bg = 'bg-info-subtle' %}
+            {% endif %}
+
+            <div class="card shadow-sm {{ border_class }}">
+                <div class="card-header {{ header_bg }} py-2 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold {{ text_class }} text-truncate me-2">
+                        {% if ann.priority in ['emergency', 'urgent'] %}
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        {% endif %}
+                        {{ ann.title }}
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <span
+                            class="badge {% if ann.priority == 'emergency' %}bg-white text-danger{% elif ann.priority == 'urgent' %}bg-dark text-warning{% elif ann.priority == 'important' %}bg-info text-dark{% else %}bg-secondary{% endif %} text-uppercase"
+                            style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            {{ ann.priority }}
+                        </span>
+                        {% if session.get('role') in ('admin', 'main_user') or ann.created_by == session.get('username')
+                        %}
+                        <form
+                            action="/delete-announcement/{{ ann.announcement_id if ann.announcement_id else ann._id }}"
+                            method="POST" class="ms-3 d-inline"
+                            onsubmit="return confirm('Are you sure you want to delete this announcement?');">
+                            <button type="submit"
+                                class="btn btn-sm btn-link p-0 {% if ann.priority in ['emergency'] %}text-white-50 hover-white{% else %}text-danger{% endif %} border-0"><i
+                                    class="bi bi-trash-fill fs-5"></i></button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body py-3 px-4">
+                    <div class="d-flex justify-content-between small text-muted mb-3 pb-2 border-bottom">
+                        <span><i class="bi bi-person me-1"></i> Posted by: <strong>{{ ann.created_by }}</strong></span>
+                        <span><i class="bi bi-calendar3 me-1"></i> {{ ann.created_at.strftime('%A, %B %d, %Y %I:%M %p')
+                            if ann.created_at else 'N/A' }}</span>
+                    </div>
+                    <div class="text-dark" style="font-size: 0.95rem; line-height: 1.6;">
+                        {{ ann.message | safe }}
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0 py-3 px-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="badge bg-light text-dark border px-2 py-1"><i
+                                    class="bi bi-bullseye me-1 text-primary"></i> Target: {{ ann.target_type | title
+                                }}</span>
+                            {% if ann.target_department %}
+                            <span class="badge bg-light text-dark border ms-1 px-2 py-1">Dept: {{ ann.target_department
+                                }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-end" style="font-size: 0.9rem;">
+                            {% if ann.status == 'Scheduled' %}
+                            <span class="text-warning fw-bold"><i class="bi bi-clock-history"></i> Scheduled</span>
+                            {% else %}
+                            <span class="text-success fw-bold"><i class="bi bi-check2-all"></i> {{ ann.stat_percent }}%
+                                Read</span>
+                            <span class="text-muted ms-1">({{ ann.stat_read }}/{{ ann.stat_total }})</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if ann.status != 'Scheduled' %}
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ ann.stat_percent }}%;"
+                            aria-valuenow="{{ ann.stat_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-secondary text-center shadow-sm py-5 mt-4">
+            <i class="bi bi-inbox display-4 d-block mb-3 text-muted"></i>
+            <h5 class="text-muted">No recent announcements to display.</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
