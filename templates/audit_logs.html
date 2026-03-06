@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs - Campus Announcement System{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 fw-semibold text-primary"><i class="bi bi-shield-lock-fill me-2"></i>System Audit Logs</h4>
+        <span class="badge bg-secondary">Latest {{ logs|length }} Events</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>User ID</th>
+                        <th>Action</th>
+                        <th>Description</th>
+                        <th>IP Address</th>
+                        <th>Log ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="text-muted small"><i class="bi bi-clock me-1"></i>{{ log.timestamp.strftime('%Y-%m-%d
+                            %H:%M:%S') if log.timestamp else 'N/A' }}</td>
+                        <td class="fw-semibold">{{ log.user_id }}</td>
+                        <td>
+                            {% set action_color = 'bg-secondary' %}
+                            {% if 'login' in log.action.lower() %}{% set action_color = 'bg-info text-dark' %}
+                            {% elif 'cr' in log.action.lower() %}{% set action_color = 'bg-success' %}
+                            {% elif 'del' in log.action.lower() %}{% set action_color = 'bg-danger' %}
+                            {% elif 'import' in log.action.lower() %}{% set action_color = 'bg-primary' %}{% endif %}
+                            <span class="badge {{ action_color }}">{{ log.action }}</span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 300px;" title="{{ log.description }}">{{
+                            log.description }}</td>
+                        <td><small class="font-monospace text-muted">{{ log.ip_address }}</small></td>
+                        <td><small class="text-muted" style="font-size: 0.70rem;">{{ log.log_id }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                            No audit logs found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
