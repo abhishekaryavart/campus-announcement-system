@@ -57,22 +57,45 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import config
 
+
+DEPT_DISPLAY_MAP = {
+    "SDC":   "Software Development Cell",
+    "sdc":   "Software Development Cell",
+    "CS":    "Computer Science Department",
+    "cs":    "Computer Science Department",
+    "Lib":   "Library",
+    "lib":   "Library",
+    "Exam":  "Examination Cell",
+    "Admin": "Administration",
+}
+
+def expand_dept_name(name):
+    """Return the full department name for known short codes, else the name as-is."""
+    if not name:
+        return name
+    return DEPT_DISPLAY_MAP.get(str(name).strip(), name)
+
 def send_email(to_email, title, content, announcement_id=None, smtp_account=None):
     try:
         from_email = smtp_account["email"] if smtp_account else config.SMTP_EMAIL
         password = smtp_account["password"] if smtp_account else config.SMTP_PASSWORD
         host = smtp_account["host"] if smtp_account else 'smtp.gmail.com'
         port = int(smtp_account["port"]) if smtp_account else 587
+
+        # Resolve full department name for display
+        dept_name = expand_dept_name(smtp_account.get("department", "")) if smtp_account else ""
         
         msg = MIMEMultipart()
-        msg['From'] = from_email
+        # Ensure all outgoing emails display 'DSVV Student Club' as requested
+        msg['From'] = f"DSVV Student Club <{from_email}>"
         msg['To'] = to_email
-        msg['Subject'] = f"Announcement : {title}"
+        msg['Subject'] = f"{title}"
+        # msg['Subject'] = f"Announcement : {title}"
 
         # Create the custom HTML format to support tracking pixels
         body = f"""
-Title: {title}<br>
-Message: {content}"""
+ 
+ {content}"""
 
         if smtp_account and smtp_account.get("signature"):
             # Replace newlines with <br> to preserve formatting in HTML email

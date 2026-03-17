@@ -220,6 +220,7 @@
                         <option value="student" {% if form.type=='student' %}selected{% endif %}>Student</option>
                         <option value="faculty" {% if form.type=='faculty' %}selected{% endif %}>Faculty</option>
                         <option value="alumni" {% if form.type=='alumni' %}selected{% endif %}>Alumni</option>
+                        <option value="test" {% if form.type=='test' %}selected{% endif %}>Test</option>
                     </select>
                     {% if errors.type %}
                     <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i>{{ errors.type }}</div>

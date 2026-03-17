@@ -49,7 +49,8 @@
                             <select class="form-select" id="smtp_config_id" name="smtp_config_id" required>
                                 <option value="" disabled selected>Select an email account...</option>
                                 {% for config in smtp_configs %}
-                                <option value="{{ config._id }}">{{ config.department }} ({{ config.email }})</option>
+                                <option value="{{ config._id }}">{{ config.department | dept_display }} ({{ config.email
+                                    }})</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -80,6 +81,7 @@
                                     <option value="department">Specific Department</option>
                                     <option value="course">Specific Course</option>
                                     <option value="year">Specific Year</option>
+                                    <option value="test">Test</option>
                                 </select>
                             </div>
 

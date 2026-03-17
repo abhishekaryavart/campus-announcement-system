@@ -30,6 +30,29 @@ from bson.objectid import ObjectId
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+# ---------------------------------------------------------------------------
+# Department display name mapping
+# Keeps internal codes intact in DB but shows full names in UI and emails
+# ---------------------------------------------------------------------------
+DEPT_DISPLAY_MAP = {
+    "SDC":   "Software Development Cell",
+    "sdc":   "Software Development Cell",
+    "CS":    "Computer Science Department",
+    "cs":    "Computer Science Department",
+    "Lib":   "Library",
+    "lib":   "Library",
+    "Exam":  "Examination Cell",
+    "Admin": "Administration",
+}
+
+def dept_display_filter(value):
+    """Map short department codes to their full display names."""
+    if not value:
+        return value
+    return DEPT_DISPLAY_MAP.get(str(value).strip(), value)
+
+app.jinja_env.filters['dept_display'] = dept_display_filter
+
 # Start background scheduler
 init_scheduler()
 

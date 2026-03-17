@@ -28,7 +28,7 @@
                 <tbody>
                     {% for config in smtp_configs %}
                     <tr>
-                        <td class="ps-4 fw-semibold">{{ config.department }}</td>
+                        <td class="ps-4 fw-semibold">{{ config.department | dept_display }}</td>
                         <td>{{ config.email }}</td>
                         <td><code class="small">{{ config.host }}</code></td>
                         <td>{{ config.port }}</td>
