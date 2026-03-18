@@ -249,7 +249,8 @@ def dashboard():
 def create_announcement():
     db = get_db()
     active_configs = list(db.smtp_configs.find({"status": "active"}))
-    return render_template("create_announcement.html", smtp_configs=active_configs)
+    data = session.get("announcement_data", {})
+    return render_template("create_announcement.html", smtp_configs=active_configs, data=data)
 
 @app.route("/recent-announcements")
 @login_required
@@ -367,9 +368,9 @@ def preview():
         try:
             # HTML5 datetime-local format is 'YYYY-MM-DDTHH:MM'
             local_dt = datetime.datetime.strptime(schedule_time_str, "%Y-%m-%dT%H:%M")
-            # For simplicity without pytz, we'll store the exact datetime structure. 
-            # Note: Production scale often requires rigorous tz conversion.
-            schedule_time = local_dt
+            # Convert IST (UTC+5:30) to UTC so the scheduler compares correctly
+            IST_OFFSET = datetime.timedelta(hours=5, minutes=30)
+            schedule_time = local_dt - IST_OFFSET
         except ValueError:
             pass
     
@@ -394,7 +395,8 @@ def preview():
         "target_dict": target_dict,
         "smtp_config_id": smtp_config_id,
         # Store as ISO format string for JSON session serialization
-        "schedule_time": schedule_time.isoformat() if schedule_time else None
+        "schedule_time": schedule_time.isoformat() if schedule_time else None,
+        "local_schedule_time_str": schedule_time_str  # For populating the form correctly on 'Edit'
     }
     
     return render_template("preview.html", 
@@ -426,9 +428,11 @@ def send_announcement():
     schedule_time = datetime.datetime.fromisoformat(schedule_time_iso) if schedule_time_iso else None
     
     # If scheduled in future, status is Scheduled. Else Sent.
-    # Note: Using exact DB-time alignment rules (utc) or relying on local time.
-    # We will let the scheduler resolve it properly based on the dt object.
-    status = "Scheduled" if schedule_time else "Sent"
+    # We will check if schedule_time is in the future.
+    if schedule_time and schedule_time > datetime.datetime.utcnow():
+        status = "Scheduled"
+    else:
+        status = "Sent"
     
     created_by = session.get("username", "anonymous")
     
@@ -442,7 +446,8 @@ def send_announcement():
         target_year=target_dict.get('year'), 
         created_by=created_by,
         status=status,
-        schedule_time=schedule_time
+        schedule_time=schedule_time,
+        smtp_config_id=data.get("smtp_config_id")
     )
     
     if status == "Sent":
@@ -486,7 +491,12 @@ def send_announcement():
         # Scheduled
         session.pop("announcement_data", None)
         log_audit(user_id=created_by, action="Announcement creation", description=f"Admin scheduled announcement: {title}", ip_address=request.remote_addr)
-        flash(f"Announcement scheduled for {schedule_time.strftime('%Y-%m-%d %H:%M')}. It will be sent automatically.", "info")
+        
+        # Format the user's local input string for friendly reading, otherwise fallback
+        local_str = data.get("local_schedule_time_str")
+        display_time = local_str.replace("T", " ") if local_str else schedule_time.strftime('%Y-%m-%d %H:%M')
+        
+        flash(f"Announcement scheduled for {display_time}. It will be sent automatically.", "info")
         
     return redirect(url_for("index"))
 

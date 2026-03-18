@@ -86,8 +86,9 @@ def send_email(to_email, title, content, announcement_id=None, smtp_account=None
         dept_name = expand_dept_name(smtp_account.get("department", "")) if smtp_account else ""
         
         msg = MIMEMultipart()
-        # Ensure all outgoing emails display 'DSVV Student Club' as requested
-        msg['From'] = f"DSVV Student Club <{from_email}>"
+        # Use department as the sender name, defaulting to 'DSVV Student Club'
+        sender_name = dept_name if dept_name else "DSVV Student Club"
+        msg['From'] = f"{sender_name} <{from_email}>"
         msg['To'] = to_email
         msg['Subject'] = f"{title}"
         # msg['Subject'] = f"Announcement : {title}"

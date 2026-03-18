@@ -1,7 +1,7 @@
 from database.mongo import get_db
 import datetime
 
-def save_announcement(title, content, priority, target_type, target_department, target_course, target_year, created_by, status="Sent", schedule_time=None):
+def save_announcement(title, content, priority, target_type, target_department, target_course, target_year, created_by, status="Sent", schedule_time=None, smtp_config_id=None):
     db = get_db()
     announcement = {
         "title": title,
@@ -14,7 +14,8 @@ def save_announcement(title, content, priority, target_type, target_department, 
         "created_by": created_by,
         "created_at": datetime.datetime.utcnow(),
         "status": status,
-        "schedule_time": schedule_time
+        "schedule_time": schedule_time,
+        "smtp_config_id": smtp_config_id
     }
     result = db.announcements.insert_one(announcement)
     

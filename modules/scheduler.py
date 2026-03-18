@@ -4,12 +4,13 @@ from database.mongo import get_db
 from modules.user import get_users_by_target
 from utils.email_service import send_email
 from modules.announcement import save_log
+from bson.objectid import ObjectId
 import atexit
 
 def process_scheduled_announcements():
     """
     Looks for announcements in the 'Scheduled' state where
-    schedule_time is <= now. Sends them and updates status to 'Sent'.
+    schedule_time is <= now (UTC). Sends them and updates status to 'Sent'.
     """
     db = get_db()
     now = datetime.datetime.utcnow()
@@ -34,6 +35,15 @@ def process_scheduled_announcements():
         recipients = get_users_by_target(target_dict)
         announcement_id = ann.get("announcement_id", str(ann.get("_id")))
         
+        # Look up the SMTP account saved with the announcement
+        smtp_account = None
+        smtp_config_id = ann.get("smtp_config_id")
+        if smtp_config_id:
+            try:
+                smtp_account = db.smtp_configs.find_one({"_id": ObjectId(smtp_config_id)})
+            except Exception as e:
+                print(f"[Scheduler] Could not load smtp_config {smtp_config_id}: {e}")
+        
         success_count = 0
         fail_count = 0
         
@@ -49,7 +59,7 @@ def process_scheduled_announcements():
                 "read_time": None
             })
             
-            if send_email(r["email"], title, content, announcement_id):
+            if send_email(r["email"], title, content, announcement_id, smtp_account):
                 status = "Sent"
                 success_count += 1
             else:
