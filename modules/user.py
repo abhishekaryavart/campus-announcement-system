@@ -39,7 +39,7 @@ def get_users_by_target(target_dict):
 
     t_type = target_dict.get('target_type', 'all').lower()
 
-    if t_type in ['student', 'faculty', 'alumni']:
+    if t_type not in ['all', 'department', 'course', 'year']:
         query['type'] = t_type
     
     # Department is applicable if type is student/faculty/alumni or explicitly "department"
